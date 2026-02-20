@@ -15,6 +15,7 @@
       --danger: #dc2626;
       --ok: #059669;
       --border: #d8def2;
+      --whatsapp: #25d366;
     }
 
     * { box-sizing: border-box; }
@@ -59,6 +60,12 @@
       align-items: end;
     }
 
+    .section-actions {
+      margin-top: 0.85rem;
+      display: flex;
+      justify-content: flex-start;
+    }
+
     label {
       display: block;
       font-size: 0.92rem;
@@ -95,9 +102,20 @@
       color: #2f3564;
     }
 
+    button.whatsapp {
+      background: var(--whatsapp);
+      color: #083c1f;
+      font-weight: 600;
+    }
+
     button.danger {
       background: #fee2e2;
       color: var(--danger);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
     }
 
     table {
@@ -152,18 +170,15 @@
 
     @media (max-width: 660px) {
       .row { grid-template-columns: 1fr; }
+      .section-actions { justify-content: stretch; }
+      .section-actions button { width: 100%; }
     }
   </style>
 </head>
 <body>
   <main class="container">
     <h1>מחשבון הוצאות לקבוצה</h1>
-    <p class="subtitle">מזינים את ההוצאות הכוללות של הקבוצה, מוסיפים משתתפים ומה כל אחד כבר שילם — ותקבלו חלוקה שווה + הוראות העברה בין האנשים.</p>
-
-    <section class="card">
-      <label for="totalExpenses">סכום הוצאות כולל (₪)</label>
-      <input id="totalExpenses" type="number" min="0" step="0.01" value="0" />
-    </section>
+    <p class="subtitle">מוסיפים משתתפים ומה כל אחד כבר שילם — הסכום הכולל מחושב אוטומטית ומתקבלות הוראות העברה בין האנשים.</p>
 
     <section class="card">
       <h2>משתתפים</h2>
@@ -201,19 +216,23 @@
     <section class="card">
       <h2>למי להעביר כסף?</h2>
       <div id="transfers"></div>
+      <div class="section-actions">
+        <button id="shareWhatsappBtn" class="whatsapp" type="button" disabled>שיתוף בוואטסאפ</button>
+      </div>
     </section>
   </main>
 
   <script>
-    const totalExpensesInput = document.getElementById('totalExpenses');
     const nameInput = document.getElementById('nameInput');
     const paidInput = document.getElementById('paidInput');
     const addPersonBtn = document.getElementById('addPersonBtn');
     const participantsBody = document.getElementById('participantsBody');
     const summary = document.getElementById('summary');
     const transfers = document.getElementById('transfers');
+    const shareWhatsappBtn = document.getElementById('shareWhatsappBtn');
 
     const participants = [];
+    let lastTransferList = [];
 
     const toMoney = (value) => `₪${Number(value).toFixed(2)}`;
     const round2 = (value) => Math.round(value * 100) / 100;
@@ -283,10 +302,39 @@
       return output;
     }
 
+    function buildWhatsappMessage({ sumPaid, perHead, transferList }) {
+      const lines = [
+        'סיכום חלוקת הוצאות:',
+        `• סה"כ הוצאות: ${toMoney(sumPaid)}`,
+        `• מספר משתתפים: ${participants.length}`,
+        `• עלות לראש: ${toMoney(perHead)}`,
+        ''
+      ];
+
+      if (transferList.length === 0) {
+        lines.push('כולם מאוזנים, אין צורך בהעברות ✅');
+      } else {
+        lines.push('העברות נדרשות:');
+        transferList.forEach((t) => {
+          lines.push(`• ${t.from} צריך/ה להעביר ${toMoney(t.amount)} ל-${t.to}`);
+        });
+      }
+
+      return lines.join('\n');
+    }
+
+    function shareOnWhatsapp() {
+      const sumPaid = round2(participants.reduce((acc, p) => acc + p.paid, 0));
+      const perHead = participants.length > 0 ? round2(sumPaid / participants.length) : 0;
+      const message = buildWhatsappMessage({ sumPaid, perHead, transferList: lastTransferList });
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+    }
+
     function render() {
-      const totalExpenses = Number(totalExpensesInput.value) || 0;
+      const sumPaid = round2(participants.reduce((acc, p) => acc + p.paid, 0));
       const count = participants.length;
-      const perHead = count > 0 ? round2(totalExpenses / count) : 0;
+      const perHead = count > 0 ? round2(sumPaid / count) : 0;
 
       const balances = participants.map((p) => {
         const balance = round2(p.paid - perHead);
@@ -313,15 +361,17 @@
         participantsBody.innerHTML = '<tr><td colspan="5" class="empty">עדיין לא נוספו משתתפים.</td></tr>';
       }
 
-      const sumPaid = round2(participants.reduce((acc, p) => acc + p.paid, 0));
       summary.innerHTML = `
-        <div class="pill">סה"כ הוצאות שהוגדרו<strong>${toMoney(totalExpenses)}</strong></div>
+        <div class="pill">סה"כ הוצאות שחושבו<strong>${toMoney(sumPaid)}</strong></div>
         <div class="pill">סה"כ שולם בפועל<strong>${toMoney(sumPaid)}</strong></div>
         <div class="pill">מספר משתתפים<strong>${count}</strong></div>
         <div class="pill">עלות לראש<strong>${toMoney(perHead)}</strong></div>
       `;
 
       const transferList = calculateTransfers(balances);
+      lastTransferList = transferList;
+      shareWhatsappBtn.disabled = count === 0;
+
       if (transferList.length === 0) {
         transfers.innerHTML = '<p class="empty">אין העברות כרגע — כולם מאוזנים, או שחסרים נתונים.</p>';
         return;
@@ -338,7 +388,7 @@
     }
 
     addPersonBtn.addEventListener('click', addPerson);
-    totalExpensesInput.addEventListener('input', render);
+    shareWhatsappBtn.addEventListener('click', shareOnWhatsapp);
     nameInput.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') addPerson();
     });
