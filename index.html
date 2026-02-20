@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>מחשבון הוצאות לקבוצה</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #1c2340;
+      --muted: #5e6787;
+      --accent: #4f46e5;
+      --danger: #dc2626;
+      --ok: #059669;
+      --border: #d8def2;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1rem 2rem;
+    }
+
+    h1 {
+      margin: 0 0 1rem;
+      font-size: 1.9rem;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1rem;
+      box-shadow: 0 8px 20px rgba(39, 52, 112, 0.08);
+      margin-bottom: 1rem;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 2fr 1fr auto;
+      gap: 0.75rem;
+      align-items: end;
+    }
+
+    label {
+      display: block;
+      font-size: 0.92rem;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 0.62rem 0.7rem;
+      font-size: 1rem;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    }
+
+    button {
+      border: none;
+      border-radius: 9px;
+      padding: 0.64rem 0.9rem;
+      font-size: 0.96rem;
+      cursor: pointer;
+      background: var(--accent);
+      color: white;
+    }
+
+    button.secondary {
+      background: #e5e8f8;
+      color: #2f3564;
+    }
+
+    button.danger {
+      background: #fee2e2;
+      color: var(--danger);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.5rem;
+      overflow: hidden;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--border);
+      text-align: right;
+      padding: 0.65rem 0.45rem;
+      font-size: 0.95rem;
+      vertical-align: middle;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 0.8rem;
+    }
+
+    .pill {
+      background: #eef2ff;
+      border: 1px solid #d5dcff;
+      border-radius: 12px;
+      padding: 0.65rem;
+    }
+
+    .pill strong {
+      display: block;
+      margin-top: 0.2rem;
+      font-size: 1.06rem;
+    }
+
+    .balance-pos { color: var(--ok); font-weight: 600; }
+    .balance-neg { color: var(--danger); font-weight: 600; }
+
+    ul { margin: 0; padding-right: 1.2rem; }
+    li + li { margin-top: 0.35rem; }
+
+    .empty {
+      color: var(--muted);
+      padding: 0.4rem 0;
+    }
+
+    @media (max-width: 660px) {
+      .row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>מחשבון הוצאות לקבוצה</h1>
+    <p class="subtitle">מזינים את ההוצאות הכוללות של הקבוצה, מוסיפים משתתפים ומה כל אחד כבר שילם — ותקבלו חלוקה שווה + הוראות העברה בין האנשים.</p>
+
+    <section class="card">
+      <label for="totalExpenses">סכום הוצאות כולל (₪)</label>
+      <input id="totalExpenses" type="number" min="0" step="0.01" value="0" />
+    </section>
+
+    <section class="card">
+      <h2>משתתפים</h2>
+      <div class="row">
+        <div>
+          <label for="nameInput">שם</label>
+          <input id="nameInput" type="text" placeholder="לדוגמה: דנה" />
+        </div>
+        <div>
+          <label for="paidInput">כמה שילם כבר (₪)</label>
+          <input id="paidInput" type="number" min="0" step="0.01" value="0" />
+        </div>
+        <button id="addPersonBtn" type="button">הוסף משתתף</button>
+      </div>
+
+      <table aria-label="טבלת משתתפים">
+        <thead>
+          <tr>
+            <th>שם</th>
+            <th>שילם בפועל</th>
+            <th>חלק שווה</th>
+            <th>מאזן</th>
+            <th>פעולות</th>
+          </tr>
+        </thead>
+        <tbody id="participantsBody"></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>סיכום</h2>
+      <div class="summary" id="summary"></div>
+    </section>
+
+    <section class="card">
+      <h2>למי להעביר כסף?</h2>
+      <div id="transfers"></div>
+    </section>
+  </main>
+
+  <script>
+    const totalExpensesInput = document.getElementById('totalExpenses');
+    const nameInput = document.getElementById('nameInput');
+    const paidInput = document.getElementById('paidInput');
+    const addPersonBtn = document.getElementById('addPersonBtn');
+    const participantsBody = document.getElementById('participantsBody');
+    const summary = document.getElementById('summary');
+    const transfers = document.getElementById('transfers');
+
+    const participants = [];
+
+    const toMoney = (value) => `₪${Number(value).toFixed(2)}`;
+    const round2 = (value) => Math.round(value * 100) / 100;
+
+    function addPerson() {
+      const name = nameInput.value.trim();
+      const paid = Number(paidInput.value);
+
+      if (!name) {
+        alert('יש להזין שם משתתף');
+        return;
+      }
+
+      if (!Number.isFinite(paid) || paid < 0) {
+        alert('יש להזין סכום תקין ששולם');
+        return;
+      }
+
+      participants.push({ id: crypto.randomUUID(), name, paid: round2(paid) });
+      nameInput.value = '';
+      paidInput.value = '0';
+      render();
+    }
+
+    function removePerson(id) {
+      const index = participants.findIndex((p) => p.id === id);
+      if (index >= 0) {
+        participants.splice(index, 1);
+        render();
+      }
+    }
+
+    function setPaid(id, value) {
+      const participant = participants.find((p) => p.id === id);
+      const parsed = Number(value);
+      if (!participant || !Number.isFinite(parsed) || parsed < 0) return;
+      participant.paid = round2(parsed);
+      render();
+    }
+
+    function calculateTransfers(balances) {
+      const debtors = balances
+        .filter((b) => b.balance < -0.009)
+        .map((b) => ({ ...b, need: Math.abs(b.balance) }));
+
+      const creditors = balances
+        .filter((b) => b.balance > 0.009)
+        .map((b) => ({ ...b, need: b.balance }));
+
+      const output = [];
+      let i = 0;
+      let j = 0;
+
+      while (i < debtors.length && j < creditors.length) {
+        const amount = round2(Math.min(debtors[i].need, creditors[j].need));
+
+        if (amount > 0) {
+          output.push({ from: debtors[i].name, to: creditors[j].name, amount });
+          debtors[i].need = round2(debtors[i].need - amount);
+          creditors[j].need = round2(creditors[j].need - amount);
+        }
+
+        if (debtors[i].need <= 0.009) i += 1;
+        if (creditors[j].need <= 0.009) j += 1;
+      }
+
+      return output;
+    }
+
+    function render() {
+      const totalExpenses = Number(totalExpensesInput.value) || 0;
+      const count = participants.length;
+      const perHead = count > 0 ? round2(totalExpenses / count) : 0;
+
+      const balances = participants.map((p) => {
+        const balance = round2(p.paid - perHead);
+        return { ...p, balance };
+      });
+
+      participantsBody.innerHTML = '';
+      balances.forEach((p) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${p.name}</td>
+          <td><input type="number" min="0" step="0.01" value="${p.paid.toFixed(2)}" aria-label="סכום ששולם עבור ${p.name}" /></td>
+          <td>${toMoney(perHead)}</td>
+          <td class="${p.balance >= 0 ? 'balance-pos' : 'balance-neg'}">${p.balance >= 0 ? '+' : '-'}${toMoney(Math.abs(p.balance)).replace('₪', '')}</td>
+          <td><button type="button" class="danger">הסר</button></td>
+        `;
+
+        tr.querySelector('input').addEventListener('change', (event) => setPaid(p.id, event.target.value));
+        tr.querySelector('button').addEventListener('click', () => removePerson(p.id));
+        participantsBody.appendChild(tr);
+      });
+
+      if (count === 0) {
+        participantsBody.innerHTML = '<tr><td colspan="5" class="empty">עדיין לא נוספו משתתפים.</td></tr>';
+      }
+
+      const sumPaid = round2(participants.reduce((acc, p) => acc + p.paid, 0));
+      summary.innerHTML = `
+        <div class="pill">סה"כ הוצאות שהוגדרו<strong>${toMoney(totalExpenses)}</strong></div>
+        <div class="pill">סה"כ שולם בפועל<strong>${toMoney(sumPaid)}</strong></div>
+        <div class="pill">מספר משתתפים<strong>${count}</strong></div>
+        <div class="pill">עלות לראש<strong>${toMoney(perHead)}</strong></div>
+      `;
+
+      const transferList = calculateTransfers(balances);
+      if (transferList.length === 0) {
+        transfers.innerHTML = '<p class="empty">אין העברות כרגע — כולם מאוזנים, או שחסרים נתונים.</p>';
+        return;
+      }
+
+      const ul = document.createElement('ul');
+      transferList.forEach((t) => {
+        const li = document.createElement('li');
+        li.textContent = `${t.from} צריך/ה להעביר ${toMoney(t.amount)} ל־${t.to}`;
+        ul.appendChild(li);
+      });
+      transfers.innerHTML = '';
+      transfers.appendChild(ul);
+    }
+
+    addPersonBtn.addEventListener('click', addPerson);
+    totalExpensesInput.addEventListener('input', render);
+    nameInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') addPerson();
+    });
+    paidInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') addPerson();
+    });
+
+    render();
+  </script>
+</body>
+</html>
