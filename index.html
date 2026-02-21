@@ -348,7 +348,7 @@
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${p.name}</td>
-          <td><input type="number" min="0" step="0.01" value="${p.paid === 0 ? "" : p.paid.toFixed(2)}" placeholder="0" aria-label="סכום ששולם עבור ${p.name}" /></td>
+          <td><input type="number" min="0" step="0.01" value="${p.paid.toFixed(2)}" placeholder="0" aria-label="סכום ששולם עבור ${p.name}" /></td>
           <td>${toMoney(perHead)}</td>
           <td class="${p.balance >= 0 ? 'balance-pos' : 'balance-neg'}">${p.balance >= 0 ? '+' : '-'}${toMoney(Math.abs(p.balance)).replace('₪', '')}</td>
           <td><button type="button" class="danger">הסר</button></td>
