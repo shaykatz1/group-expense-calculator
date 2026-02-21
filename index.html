@@ -63,6 +63,8 @@
     .section-actions {
       margin-top: 0.85rem;
       display: flex;
+      gap: 0.55rem;
+      flex-wrap: wrap;
       justify-content: flex-start;
     }
 
@@ -218,6 +220,7 @@
       <div id="transfers"></div>
       <div class="section-actions">
         <button id="shareWhatsappBtn" class="whatsapp" type="button" disabled>שיתוף בוואטסאפ</button>
+        <button id="resetDataBtn" class="danger" type="button">איפוס נתונים</button>
       </div>
     </section>
   </main>
@@ -230,12 +233,41 @@
     const summary = document.getElementById('summary');
     const transfers = document.getElementById('transfers');
     const shareWhatsappBtn = document.getElementById('shareWhatsappBtn');
+    const resetDataBtn = document.getElementById('resetDataBtn');
 
     const participants = [];
     let lastTransferList = [];
+    const STORAGE_KEY = 'group-expense-calculator:v1';
 
     const toMoney = (value) => `₪${Number(value).toFixed(2)}`;
     const round2 = (value) => Math.round(value * 100) / 100;
+    const createId = () => globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+
+    function saveParticipants() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(participants));
+      } catch (_) {}
+    }
+
+    function loadParticipants() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return;
+        participants.length = 0;
+        parsed.forEach((item) => {
+          const name = typeof item?.name === 'string' ? item.name.trim() : '';
+          const paid = Number(item?.paid);
+          if (!name || !Number.isFinite(paid) || paid < 0) return;
+          participants.push({
+            id: typeof item?.id === 'string' && item.id ? item.id : createId(),
+            name,
+            paid: round2(paid)
+          });
+        });
+      } catch (_) {}
+    }
 
     function addPerson() {
       const name = nameInput.value.trim();
@@ -340,6 +372,19 @@
       }
     }
 
+    function resetAllData() {
+      const shouldReset = window.confirm('למחוק את כל הנתונים השמורים?');
+      if (!shouldReset) return;
+      participants.length = 0;
+      lastTransferList = [];
+      nameInput.value = '';
+      paidInput.value = '';
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch (_) {}
+      render();
+    }
+
     function render() {
       const sumPaid = round2(participants.reduce((acc, p) => acc + p.paid, 0));
       const count = participants.length;
@@ -379,6 +424,7 @@
       const transferList = calculateTransfers(balances);
       lastTransferList = transferList;
       shareWhatsappBtn.disabled = count === 0;
+      saveParticipants();
 
       if (transferList.length === 0) {
         transfers.innerHTML = '<p class="empty">אין העברות כרגע — כולם מאוזנים, או שחסרים נתונים.</p>';
@@ -397,6 +443,7 @@
 
     addPersonBtn.addEventListener('click', addPerson);
     shareWhatsappBtn.addEventListener('click', shareOnWhatsapp);
+    resetDataBtn.addEventListener('click', resetAllData);
     nameInput.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') addPerson();
     });
@@ -404,6 +451,7 @@
       if (event.key === 'Enter') addPerson();
     });
 
+    loadParticipants();
     render();
   </script>
 </body>
