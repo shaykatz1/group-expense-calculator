@@ -329,8 +329,15 @@
       const sumPaid = round2(participants.reduce((acc, p) => acc + p.paid, 0));
       const perHead = participants.length > 0 ? round2(sumPaid / participants.length) : 0;
       const message = buildWhatsappMessage({ sumPaid, perHead, transferList: lastTransferList });
-      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+      const encodedMessage = encodeURIComponent(message);
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const whatsappUrl = isMobile
+        ? `whatsapp://send?text=${encodedMessage}`
+        : `https://api.whatsapp.com/send?text=${encodedMessage}`;
+      const openedWindow = window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+      if (!openedWindow) {
+        window.location.href = whatsappUrl;
+      }
     }
 
     function render() {
