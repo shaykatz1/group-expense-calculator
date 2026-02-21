@@ -189,7 +189,7 @@
         </div>
         <div>
           <label for="paidInput">כמה שילם כבר (₪)</label>
-          <input id="paidInput" type="number" min="0" step="0.01" value="0" />
+          <input id="paidInput" type="number" min="0" step="0.01" placeholder="0" />
         </div>
         <button id="addPersonBtn" type="button">הוסף משתתף</button>
       </div>
@@ -239,7 +239,8 @@
 
     function addPerson() {
       const name = nameInput.value.trim();
-      const paid = Number(paidInput.value);
+      const paidRaw = paidInput.value.trim();
+      const paid = paidRaw === '' ? 0 : Number(paidRaw);
 
       if (!name) {
         alert('יש להזין שם משתתף');
@@ -253,7 +254,7 @@
 
       participants.push({ id: crypto.randomUUID(), name, paid: round2(paid) });
       nameInput.value = '';
-      paidInput.value = '0';
+      paidInput.value = '';
       render();
     }
 
@@ -267,7 +268,8 @@
 
     function setPaid(id, value) {
       const participant = participants.find((p) => p.id === id);
-      const parsed = Number(value);
+      const normalized = String(value).trim();
+      const parsed = normalized === '' ? 0 : Number(normalized);
       if (!participant || !Number.isFinite(parsed) || parsed < 0) return;
       participant.paid = round2(parsed);
       render();
@@ -346,7 +348,7 @@
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${p.name}</td>
-          <td><input type="number" min="0" step="0.01" value="${p.paid.toFixed(2)}" aria-label="סכום ששולם עבור ${p.name}" /></td>
+          <td><input type="number" min="0" step="0.01" value="${p.paid === 0 ? "" : p.paid.toFixed(2)}" placeholder="0" aria-label="סכום ששולם עבור ${p.name}" /></td>
           <td>${toMoney(perHead)}</td>
           <td class="${p.balance >= 0 ? 'balance-pos' : 'balance-neg'}">${p.balance >= 0 ? '+' : '-'}${toMoney(Math.abs(p.balance)).replace('₪', '')}</td>
           <td><button type="button" class="danger">הסר</button></td>
@@ -362,8 +364,7 @@
       }
 
       summary.innerHTML = `
-        <div class="pill">סה"כ הוצאות שחושבו<strong>${toMoney(sumPaid)}</strong></div>
-        <div class="pill">סה"כ שולם בפועל<strong>${toMoney(sumPaid)}</strong></div>
+        <div class="pill">סה"כ הוצאות (מחושב אוטומטית)<strong>${toMoney(sumPaid)}</strong></div>
         <div class="pill">מספר משתתפים<strong>${count}</strong></div>
         <div class="pill">עלות לראש<strong>${toMoney(perHead)}</strong></div>
       `;
